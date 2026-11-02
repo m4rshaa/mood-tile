@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mood Tile — Your daily emotion journal</title>
+  <style>
+    :root {
+      --ink: #26352f; --muted: #718078; --paper: #f7f8f3; --card: #ffffff;
+      --line: #e6eae2; --accent: #526d5c; --accent-light: #e9f0e9;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--paper); color: var(--ink); font-family: Inter, ui-sans-serif, system-ui, Arial, sans-serif; }
+    .wrap { max-width: 1080px; margin: auto; padding: 28px 20px 60px; }
+    header { display:flex; justify-content:space-between; align-items:center; margin-bottom:34px; }
+    .brand { font-size:30px; font-weight:800; letter-spacing:-1.5px; }
+    .brand span { color:#8a9b86; }
+    .tagline { color:var(--muted); font-size:13px; }
+    .hero { margin-bottom:26px; }
+    .eyebrow { text-transform:uppercase; letter-spacing:2px; font-size:11px; color:var(--accent); font-weight:700; }
+    h1 { font-size:clamp(28px,5vw,42px); letter-spacing:-1.5px; margin:8px 0; }
+    .sub { color:var(--muted); max-width:650px; line-height:1.6; margin:0; }
+    .datebar { display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin:24px 0; }
+    input, textarea, select { font:inherit; color:var(--ink); }
+    input[type=date] { border:1px solid var(--line); border-radius:12px; padding:11px 13px; background:white; }
+    .today-label { color:var(--muted); font-size:13px; }
+    .layout { display:grid; grid-template-columns:1.1fr .9fr; gap:18px; align-items:start; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:20px; padding:22px; box-shadow:0 5px 22px #29382b08; }
+    h2 { font-size:19px; margin:0 0 6px; letter-spacing:-.4px; }
+    .hint { color:var(--muted); font-size:13px; line-height:1.5; margin:0 0 18px; }
+    .emotions { display:grid; grid-template-columns:repeat(4,1fr); gap:9px; }
+    .emotion { border:1px solid var(--line); background:#fff; border-radius:13px; padding:12px 5px; cursor:pointer; transition:.15s; }
+    .emotion:hover { transform:translateY(-2px); border-color:#aab9aa; }
+    .emotion.selected { outline:2px solid var(--accent); background:var(--accent-light); }
+    .dot { width:15px; height:15px; border-radius:50%; display:block; margin:0 auto 7px; }
+    .emotion b { display:block; font-size:12px; }
+    .field { margin-top:15px; }
+    label { display:block; font-size:13px; font-weight:650; margin-bottom:7px; }
+    textarea { width:100%; border:1px solid var(--line); border-radius:12px; padding:12px; resize:vertical; min-height:82px; outline-color:#8da58f; background:#fff; }
+    .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    button { border:0; border-radius:12px; padding:12px 17px; background:var(--accent); color:white; font-weight:700; cursor:pointer; }
+    button:hover { filter:brightness(.95); }
+    button.secondary { background:#eef2ec; color:var(--ink); }
+    button.danger { background:#fff0ee; color:#a33e38; padding:8px 11px; }
+    .full { width:100%; margin-top:16px; }
+    .stats-head { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+    .count { font-size:12px; color:var(--muted); background:#f1f4ef; border-radius:30px; padding:6px 10px; }
+    .empty { color:var(--muted); background:#f8faf6; border:1px dashed #dce4d9; padding:18px; border-radius:13px; font-size:13px; line-height:1.5; }
+    .stat { margin-top:15px; }
+    .statline { display:flex; justify-content:space-between; font-size:13px; margin-bottom:7px; }
+    .track { height:9px; background:#edf0eb; border-radius:20px; overflow:hidden; }
+    .fill { height:100%; border-radius:20px; }
+    .entries { display:flex; flex-direction:column; gap:10px; margin-top:14px; }
+    .entry { border:1px solid var(--line); border-radius:13px; padding:12px; }
+    .entrytop { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+    .entryemotion { display:flex; gap:8px; align-items:center; font-size:13px; font-weight:700; }
+    .entry p { margin:8px 0 0; font-size:13px; line-height:1.5; color:#58675f; white-space:pre-wrap; }
+    .time { color:var(--muted); font-size:11px; }
+    .reports { margin-top:18px; }
+    .report-controls { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin:14px 0; }
+    .report-controls select { border:1px solid var(--line); border-radius:10px; padding:10px 12px; background:white; }
+    .report-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin:14px 0; }
+    .report-metric { background:#f8faf6; border:1px solid var(--line); border-radius:12px; padding:13px; }
+    .report-metric strong { display:block; font-size:22px; margin-top:4px; }
+    .report-metric span { color:var(--muted); font-size:12px; }
+    .report-note { color:var(--muted); font-size:12px; line-height:1.5; margin-top:12px; }
+    .reflection { margin-top:18px; }
+    .reflection textarea { min-height:105px; }
+    .saved { font-size:12px; color:var(--accent); min-height:18px; margin-top:8px; }
+    footer { color:var(--muted); font-size:11px; line-height:1.6; text-align:center; margin:28px auto 0; max-width:720px; }
+    @media(max-width:760px) { .layout { grid-template-columns:1fr; } .emotions { grid-template-columns:repeat(4,1fr); } .card { padding:18px; } .report-grid { grid-template-columns:1fr; } }
+    @media(max-width:390px) { .emotions { grid-template-columns:repeat(2,1fr); } }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header>
+      <div class="brand">Mood Tile<span>.</span></div>
+      <div class="tagline">A little space to check in with yourself.</div>
+    </header>
+
+    <section class="hero">
+      <div class="eyebrow">Your personal emotion journal</div>
+      <h1>Make space for every feeling.</h1>
+      <p class="sub">Notice what you feel, record what is happening, and look back on your day with kindness.</p>
+    </section>
+
+    <div class="datebar">
+      <label for="selectedDate" style="margin:0">Choose a date</label>
+      <input type="date" id="selectedDate">
+      <span class="today-label">You can add multiple check-ins to one day.</span>
+    </div>
+
+    <div class="layout">
+      <section class="card">
+        <h2>How are you feeling?</h2>
+        <p class="hint">Choose the emotion that best describes this moment. You can add another entry later.</p>
+        <div class="emotions" id="emotionChoices"></div>
+
+        <div class="field">
+          <label for="description">What's happening? (optional)</label>
+          <textarea id="description" maxlength="600" placeholder="Write a little about what happened or what might have influenced this feeling..."></textarea>
+        </div>
+        <button class="full" id="addEntry">＋ Add emotion check-in</button>
+        <div class="saved" id="entryMessage" aria-live="polite"></div>
+
+        <div class="reflection">
+          <h2>Daily reflection</h2>
+          <p class="hint">When you're ready, look back on the day. There is no right or wrong answer.</p>
+          <label for="reflectionText">What stood out today?</label>
+          <textarea id="reflectionText" maxlength="1500" placeholder="What affected your mood? What helped? What might you try tomorrow?"></textarea>
+          <button class="full secondary" id="saveReflection">Save daily reflection</button>
+          <div class="saved" id="reflectionMessage" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <aside>
+        <section class="card">
+          <div class="stats-head">
+            <div><h2>Today's emotional mix</h2><p class="hint" style="margin:5px 0 0">Based on your recorded check-ins.</p></div>
+            <span class="count" id="entryCount">0 entries</span>
+          </div>
+          <div id="stats"><div class="empty">Your emotion summary will appear here after your first check-in.</div></div>
+        </section>
+
+        <section class="card" style="margin-top:18px">
+          <h2>Check-ins</h2>
+          <p class="hint">Your entries for the selected date.</p>
+          <div id="entries" class="empty">No check-ins yet. Add your first emotion above.</div>
+        </section>
+      </aside>
+    </div>
+
+    <section class="card reports">
+      <h2>Weekly & monthly reports</h2>
+      <p class="hint">Look back at your check-ins over a longer period. Reports are created from entries saved in this browser.</p>
+      <div class="report-controls">
+        <label for="reportPeriod" style="margin:0">Report period</label>
+        <select id="reportPeriod" aria-label="Report period">
+          <option value="week">This week (Monday–Sunday)</option>
+          <option value="month">This month</option>
+        </select>
+        <button type="button" class="secondary" id="refreshReport">Refresh report</button>
+      </div>
+      <div id="reportRange" class="today-label"></div>
+      <div id="reportMetrics" class="report-grid"></div>
+      <div id="reportStats"></div>
+      <div id="reportHighlights" class="empty">Your report will appear here when you have check-ins in the selected period.</div>
+      <p class="report-note">Reports summarize the check-ins you recorded; they cannot determine how you felt outside those moments. Your data stays in this browser on this device.</p>
+    </section>
+
+    <footer>
+      Mood Tile is a personal reflection tool, not a medical or diagnostic service. Its percentages describe your check-ins, not the amount of time you felt an emotion. Your entries are saved in this browser on this device. Avoid entering information you would not want someone with access to this device to see. This website was created with the assistance of AI.
+    </footer>
+  </main>
+
+<script>
+const emotions = [
+  {name:"Joy", color:"#F4C84A", group:"Joy"},
+  {name:"Trust", color:"#78B879", group:"Trust"},
+  {name:"Fear", color:"#39A99A", group:"Fear"},
+  {name:"Surprise", color:"#67B9D2", group:"Surprise"},
+  {name:"Sadness", color:"#6688C8", group:"Sadness"},
+  {name:"Disgust", color:"#9876B8", group:"Disgust"},
+  {name:"Anger", color:"#E36B5D", group:"Anger"},
+  {name:"Anticipation", color:"#E99A48", group:"Anticipation"}
+];
+
+const STORAGE_KEY = "tile-emotion-journal-v1";
+let selectedEmotion = "";
+let data = loadData();
+
+const dateInput = document.getElementById("selectedDate");
+const today = new Date();
+const localDate = new Date(today.getTime() - today.getTimezoneOffset() * 60000).toISOString().slice(0,10);
+dateInput.value = localDate;
+
+function loadData() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
+  catch { return {}; }
+}
+function saveData() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+function dayData(date) {
+  if (!data[date]) data[date] = { entries: [], reflection: "" };
+  return data[date];
+}
+function renderEmotionChoices() {
+  const holder = document.getElementById("emotionChoices");
+  holder.innerHTML = "";
+  emotions.forEach(emotion => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "emotion" + (selectedEmotion === emotion.name ? " selected" : "");
+    button.innerHTML = `<span class="dot" style="background:${emotion.color}"></span><b>${emotion.name}</b>`;
+    button.addEventListener("click", () => {
+      selectedEmotion = emotion.name;
+      renderEmotionChoices();
+    });
+    holder.appendChild(button);
+  });
+}
+function render() {
+  const date = dateInput.value;
+  const day = dayData(date);
+  document.getElementById("reflectionText").value = day.reflection || "";
+  document.getElementById("entryCount").textContent = `${day.entries.length} ${day.entries.length === 1 ? "entry" : "entries"}`;
+  renderStats(day.entries);
+  renderEntries(day.entries);
+}
+function renderStats(entries) {
+  const holder = document.getElementById("stats");
+  if (!entries.length) {
+    holder.innerHTML = '<div class="empty">Your emotion summary will appear here after your first check-in.</div>';
+    return;
+  }
+  const counts = {};
+  entries.forEach(entry => counts[entry.emotion] = (counts[entry.emotion] || 0) + 1);
+  holder.innerHTML = "";
+  emotions.forEach(emotion => {
+    const count = counts[emotion.name] || 0;
+    if (!count) return;
+    const percentage = Math.round(count / entries.length * 100);
+    const stat = document.createElement("div");
+    stat.className = "stat";
+    stat.innerHTML = `
+      <div class="statline"><span>${emotion.name} <span style="color:#89958e">(${count})</span></span><b>${percentage}%</b></div>
+      <div class="track"><div class="fill" style="width:${percentage}%;background:${emotion.color}"></div></div>`;
+    holder.appendChild(stat);
+  });
+}
+function renderEntries(entries) {
+  const holder = document.getElementById("entries");
+  holder.innerHTML = "";
+  if (!entries.length) {
+    holder.className = "empty";
+    holder.textContent = "No check-ins yet. Add your first emotion above.";
+    return;
+  }
+  holder.className = "entries";
+  [...entries].reverse().forEach(entry => {
+    const emotion = emotions.find(item => item.name === entry.emotion);
+    const article = document.createElement("article");
+    article.className = "entry";
+    const top = document.createElement("div");
+    top.className = "entrytop";
+    const label = document.createElement("div");
+    label.className = "entryemotion";
+    const dot = document.createElement("span");
+    dot.className = "dot";
+    dot.style.cssText = `background:${emotion.color};margin:0`;
+    label.append(dot, document.createTextNode(entry.emotion));
+    const right = document.createElement("div");
+    right.className = "row";
+    const time = document.createElement("span");
+    time.className = "time";
+    time.textContent = entry.time;
+    const remove = document.createElement("button");
+    remove.className = "danger";
+    remove.textContent = "Delete";
+    remove.addEventListener("click", () => {
+      const date = dateInput.value;
+      dayData(date).entries = dayData(date).entries.filter(item => item.id !== entry.id);
+      saveData(); render();
+    });
+    right.append(time, remove);
+    top.append(label, right);
+    article.append(top);
+    if (entry.description) {
+      const p = document.createElement("p");
+      p.textContent = entry.description;
+      article.append(p);
+    }
+    holder.append(article);
+  });
+}
+document.getElementById("addEntry").addEventListener("click", () => {
+  if (!selectedEmotion) {
+    document.getElementById("entryMessage").textContent = "Please choose an emotion first.";
+    return;
+  }
+  const date = dateInput.value;
+  const description = document.getElementById("description").value.trim();
+  const time = new Date().toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
+  dayData(date).entries.push({id: Date.now().toString(), emotion:selectedEmotion, description, time});
+  saveData();
+  document.getElementById("description").value = "";
+  document.getElementById("entryMessage").textContent = "Check-in saved.";
+  selectedEmotion = "";
+  renderEmotionChoices();
+  render();
+});
+document.getElementById("saveReflection").addEventListener("click", () => {
+  const date = dateInput.value;
+  dayData(date).reflection = document.getElementById("reflectionText").value;
+  saveData();
+  document.getElementById("reflectionMessage").textContent = "Reflection saved.";
+});
+dateInput.addEventListener("change", () => {
+  document.getElementById("entryMessage").textContent = "";
+  document.getElementById("reflectionMessage").textContent = "";
+  render();
+});
+function dateKey(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+function formatDate(date) {
+  return date.toLocaleDateString(undefined, {month:"short", day:"numeric", year:"numeric"});
+}
+function renderReport() {
+  const period = document.getElementById("reportPeriod").value;
+  const now = new Date();
+  let start, end;
+  if (period === "week") {
+    start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const day = (start.getDay() + 6) % 7;
+    start.setDate(start.getDate() - day);
+    end = new Date(start);
+    end.setDate(start.getDate() + 6);
+  } else {
+    start = new Date(now.getFullYear(), now.getMonth(), 1);
+    end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  }
+  const startKey = dateKey(start), endKey = dateKey(end);
+  const entries = [];
+  let daysWithEntries = 0;
+  let reflectionCount = 0;
+  Object.keys(data).forEach(key => {
+    if (key >= startKey && key <= endKey) {
+      const day = data[key] || {};
+      const dayEntries = Array.isArray(day.entries) ? day.entries : [];
+      if (dayEntries.length) daysWithEntries++;
+      if ((day.reflection || "").trim()) reflectionCount++;
+      dayEntries.forEach(entry => entries.push({...entry, date:key}));
+    }
+  });
+  document.getElementById("reportRange").textContent = `${formatDate(start)} – ${formatDate(end)}`;
+  document.getElementById("reportMetrics").innerHTML = `
+    <div class="report-metric"><span>Total check-ins</span><strong>${entries.length}</strong></div>
+    <div class="report-metric"><span>Days with check-ins</span><strong>${daysWithEntries}</strong></div>
+    <div class="report-metric"><span>Daily reflections saved</span><strong>${reflectionCount}</strong></div>`;
+  const counts = {};
+  entries.forEach(entry => { counts[entry.emotion] = (counts[entry.emotion] || 0) + 1; });
+  const stats = document.getElementById("reportStats");
+  stats.innerHTML = "";
+  if (entries.length) {
+    const title = document.createElement("h3");
+    title.textContent = "Emotion mix for this period";
+    title.style.cssText = "font-size:15px;margin:18px 0 8px";
+    stats.appendChild(title);
+    emotions.forEach(emotion => {
+      const count = counts[emotion.name] || 0;
+      if (!count) return;
+      const percentage = Math.round(count / entries.length * 100);
+      const stat = document.createElement("div");
+      stat.className = "stat";
+      stat.innerHTML = `<div class="statline"><span>${emotion.name} <span style="color:#89958e">(${count})</span></span><b>${percentage}%</b></div><div class="track"><div class="fill" style="width:${percentage}%;background:${emotion.color}"></div></div>`;
+      stats.appendChild(stat);
+    });
+    const mostCommon = emotions.filter(emotion => counts[emotion.name]).sort((a,b) => counts[b.name] - counts[a.name])[0];
+    const highlights = document.getElementById("reportHighlights");
+    highlights.className = "empty";
+    highlights.textContent = `Your most frequently logged emotion was ${mostCommon.name} (${counts[mostCommon.name]} of ${entries.length} check-ins). This reflects only the moments you chose to record.`;
+  } else {
+    document.getElementById("reportHighlights").className = "empty";
+    document.getElementById("reportHighlights").textContent = "No check-ins were found in this period yet. Add a check-in on a date in this period to start building your report.";
+  }
+}
+document.getElementById("reportPeriod").addEventListener("change", renderReport);
+document.getElementById("refreshReport").addEventListener("click", renderReport);
+
+renderEmotionChoices();
+render();
+renderReport();
+</script>
+</body>
+</html>
